@@ -4,7 +4,7 @@ use std::ptr;
 
 use crate::error::VirtError;
 
-/// libvirt version.
+/// A software version.
 pub struct Version {
     /// The major version number.
     pub major: u64,

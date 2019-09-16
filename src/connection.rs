@@ -1,5 +1,5 @@
 use crate::error::{Error, VirtError};
-use virt_sys::{virConnectClose, virConnectOpen, virConnectPtr};
+use virt_sys::{virConnectClose, virConnectOpen, virConnectPtr, virConnectRef};
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::ptr;
@@ -51,6 +51,17 @@ impl Connection {
     /// as long as this connection instance is in scope.
     pub fn as_ptr(&self) -> virConnectPtr {
         self.0
+    }
+}
+
+impl Clone for Connection {
+    fn clone(&self) -> Self {
+        assert_eq!(
+            unsafe { virConnectRef(self.0) },
+            0,
+            "Unexpected error from virConnectRef"
+        );
+        Self(self.0)
     }
 }
 
