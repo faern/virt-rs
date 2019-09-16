@@ -1,8 +1,10 @@
 use crate::error::{Error, VirtError};
-use virt_sys::{virConnectClose, virConnectOpen, virConnectPtr, virConnectRef};
 use std::ffi::{CStr, CString};
-use std::os::raw::c_char;
+use std::os::raw::{c_char, c_ulong};
 use std::ptr;
+use virt_sys::{
+    virConnectClose, virConnectGetLibVersion, virConnectOpen, virConnectPtr, virConnectRef,
+};
 
 pub struct Connection(virConnectPtr);
 
@@ -51,6 +53,19 @@ impl Connection {
     /// as long as this connection instance is in scope.
     pub fn as_ptr(&self) -> virConnectPtr {
         self.0
+    }
+
+    /// Returns the version of libvirt used by the hypervisor this connection is connected to.
+    pub fn lib_version(&self) -> Result<crate::version::Version, VirtError> {
+        let mut lib_ver: c_ulong = 0;
+        match unsafe { virConnectGetLibVersion(self.0, &mut lib_ver) } {
+            -1 => Err(VirtError::last_virt_error()),
+            0 => Ok(crate::version::Version::from(lib_ver)),
+            i => panic!(
+                "Unexpected return value from virConnectGetLibVersion: {}",
+                i
+            ),
+        }
     }
 
     /// Closes the connection. If this connection has been cloned it just decrements the

@@ -25,12 +25,12 @@ impl From<c_ulong> for Version {
 }
 
 /// Returns the version of the backing libvirt C implementation in use by this library.
-pub fn version() -> Result<Version, VirtError> {
-    unparsed_version().map(Version::from)
+pub fn lib_version() -> Result<Version, VirtError> {
+    unparsed_lib_version().map(Version::from)
 }
 
 /// Returns the unparsed version of the backing libvirt C implementation in use by this library.
-fn unparsed_version() -> Result<c_ulong, VirtError> {
+fn unparsed_lib_version() -> Result<c_ulong, VirtError> {
     let mut lib_ver: c_ulong = 0;
     match unsafe { virGetVersion(&mut lib_ver, ptr::null(), ptr::null_mut()) } {
         -1 => Err(VirtError::last_virt_error()),
