@@ -7,3 +7,5 @@ pub use connection::Connection;
 
 mod error;
 pub use error::{Error, VirtError};
+
+pub mod version;
