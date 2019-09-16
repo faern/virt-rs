@@ -3,7 +3,8 @@ use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_ulong};
 use std::ptr;
 use virt_sys::{
-    virConnectClose, virConnectGetLibVersion, virConnectOpen, virConnectPtr, virConnectRef,
+    virConnectClose, virConnectGetHostname, virConnectGetLibVersion, virConnectGetType,
+    virConnectGetURI, virConnectGetVersion, virConnectOpen, virConnectPtr, virConnectRef,
 };
 
 pub struct Connection(virConnectPtr);
@@ -55,6 +56,69 @@ impl Connection {
         self.0
     }
 
+    /// Returns the system hostname on which the hypervisor is running.
+    pub fn hostname(&self) -> Result<String, Error> {
+        let hostname_ptr = cvt_null!(unsafe { virConnectGetHostname(self.0) })?;
+        let hostname = unsafe { CStr::from_ptr(hostname_ptr) }
+            .to_str()
+            .map(str::to_owned);
+        unsafe {
+            libc::free(hostname_ptr as *mut _);
+        }
+        Ok(hostname.map_err(Error::Utf8Error)?)
+    }
+
+    pub fn hostname_cstr(&self) -> Result<CString, VirtError> {
+        let hostname_ptr = cvt_null!(unsafe { virConnectGetHostname(self.0) })?;
+        let hostname = unsafe {
+            CString::from_vec_unchecked(CStr::from_ptr(hostname_ptr).to_bytes().to_vec())
+        };
+        unsafe {
+            libc::free(hostname_ptr as *mut _);
+        }
+        Ok(hostname)
+    }
+
+    pub fn uri(&self) -> Result<String, Error> {
+        let uri_ptr = cvt_null!(unsafe { virConnectGetURI(self.0) })?;
+        let uri = unsafe { CStr::from_ptr(uri_ptr) }
+            .to_str()
+            .map(str::to_owned);
+        unsafe {
+            libc::free(uri_ptr as *mut _);
+        }
+        Ok(uri.map_err(Error::Utf8Error)?)
+    }
+
+    pub fn uri_cstr(&self) -> Result<CString, VirtError> {
+        let uri_ptr = cvt_null!(unsafe { virConnectGetURI(self.0) })?;
+        let uri =
+            unsafe { CString::from_vec_unchecked(CStr::from_ptr(uri_ptr).to_bytes().to_vec()) };
+        unsafe {
+            libc::free(uri_ptr as *mut _);
+        }
+        Ok(uri)
+    }
+
+    /// Returns the name of the Hypervisor driver used. This is merely the driver name;
+    /// for example, both KVM and QEMU guests are serviced by the driver for the qemu:// URI,
+    /// so a return of "QEMU" does not indicate whether KVM acceleration is present
+    pub fn hypervisor_type(&self) -> Result<&'static str, Error> {
+        self.hypervisor_type_cstr()
+            .map_err(Error::VirtError)
+            .and_then(|hypervisor_type| hypervisor_type.to_str().map_err(Error::Utf8Error))
+    }
+
+    /// See [`hypervisor_type`].
+    pub fn hypervisor_type_cstr(&self) -> Result<&'static CStr, VirtError> {
+        let ptr = unsafe { virConnectGetType(self.0) };
+        if ptr.is_null() {
+            Err(VirtError::last_virt_error())
+        } else {
+            Ok(unsafe { CStr::from_ptr(ptr) })
+        }
+    }
+
     /// Returns the version of libvirt used by the hypervisor this connection is connected to.
     pub fn lib_version(&self) -> Result<crate::version::Version, VirtError> {
         let mut lib_ver: c_ulong = 0;
@@ -65,6 +129,19 @@ impl Connection {
                 "Unexpected return value from virConnectGetLibVersion: {}",
                 i
             ),
+        }
+    }
+
+    pub fn hypervisor_version(&self) -> Result<Option<crate::version::Version>, VirtError> {
+        let mut hv_ver: c_ulong = 0;
+        match unsafe { virConnectGetVersion(self.0, &mut hv_ver) } {
+            -1 => Err(VirtError::last_virt_error()),
+            0 => Ok(if hv_ver == 0 {
+                None
+            } else {
+                Some(crate::version::Version::from(hv_ver))
+            }),
+            i => panic!("Unexpected return value from virConnectGetVersion: {}", i),
         }
     }
 

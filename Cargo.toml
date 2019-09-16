@@ -27,3 +27,4 @@ libvirt-5-7-0 = ["virt-sys/libvirt-5-7-0"]
 virt-sys = { version = "0.1.0", path = "./virt-sys" }
 err-derive = "0.1"
 log = "0.4.8"
+libc = "0.2.62"

@@ -8,14 +8,24 @@ fn main() {
         ),
         Err(e) => eprintln!("Unable to get local lib version: {}", e),
     }
-    match Connection::open_default() {
-        Ok(connection) => match connection.lib_version() {
-            Ok(v) => println!(
-                "Hypervisor uses libvirt version {}.{}.{}",
-                v.major, v.minor, v.release
-            ),
-            Err(e) => eprintln!("Unable to fetch hypervisor lib version: {}", e),
-        },
-        Err(e) => eprintln!("Unable to connect to a default hypervisor: {}", e),
-    }
+
+    let connection = Connection::open_default().expect("Unable to connect");
+    println!("Hypervisor:");
+    println!("\tURI: {}", connection.uri().expect("Unable to get URI"));
+    println!("\thostname: {}", connection.hostname().unwrap());
+    println!(
+        "\thypervisor type: {}",
+        connection.hypervisor_type().unwrap()
+    );
+    println!(
+        "\thypervisor version: {}",
+        connection
+            .hypervisor_version()
+            .unwrap()
+            .map(|v| v.to_string())
+            .as_ref()
+            .map(|s| s.as_str())
+            .unwrap_or("Unknown")
+    );
+    println!("\tlibvirt version: {}", connection.lib_version().unwrap());
 }

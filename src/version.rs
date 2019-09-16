@@ -1,10 +1,12 @@
 use virt_sys::virGetVersion;
+use std::fmt;
 use std::os::raw::c_ulong;
 use std::ptr;
 
 use crate::error::VirtError;
 
 /// A software version.
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Version {
     /// The major version number.
     pub major: u64,
@@ -21,6 +23,12 @@ impl From<c_ulong> for Version {
             minor: (lib_ver % 1_000_000) / 1_000,
             release: (lib_ver % 1_000),
         }
+    }
+}
+
+impl fmt::Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}.{}.{}", self.major, self.minor, self.release)
     }
 }
 

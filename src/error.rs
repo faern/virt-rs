@@ -12,6 +12,14 @@ pub enum Error {
     VirtError(#[error(cause)] VirtError),
     #[error(display = "Invalid URI")]
     InvalidUri(#[error(cause)] std::ffi::NulError),
+    #[error(display = "String is not valid UTF-8")]
+    Utf8Error(#[error(cause)] std::str::Utf8Error),
+
+    /// You should never match on this error variant. This enum can grow, and the breaking version
+    /// number won't be bumped.
+    #[doc(hidden)]
+    #[error(display = "__Nonexhaustive")]
+    __Nonexhaustive,
 }
 
 impl From<VirtError> for Error {
