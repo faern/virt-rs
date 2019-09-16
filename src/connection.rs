@@ -52,6 +52,19 @@ impl Connection {
     pub fn as_ptr(&self) -> virConnectPtr {
         self.0
     }
+
+    /// Closes the connection. If this connection has been cloned it just decrements the
+    /// reference count. The connection is actually closed when the last instance is closed.
+    pub fn close(self) -> Result<(), VirtError> {
+        self.close_internal()
+    }
+
+    fn close_internal(&self) -> Result<(), VirtError> {
+        match unsafe { virConnectClose(self.0) } {
+            -1 => Err(VirtError::last_virt_error()),
+            _ => Ok(()),
+        }
+    }
 }
 
 impl Clone for Connection {
@@ -67,7 +80,8 @@ impl Clone for Connection {
 
 impl Drop for Connection {
     fn drop(&mut self) {
-        // FIXME: check for negative return value
-        let _ = unsafe { virConnectClose(self.0) };
+        if let Err(e) = self.close_internal() {
+            log::error!("Error when closing connection: {}", e);
+        }
     }
 }
