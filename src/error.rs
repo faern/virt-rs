@@ -6,6 +6,19 @@ use std::borrow::Cow;
 use std::ffi::CStr;
 use std::fmt;
 
+#[derive(err_derive::Error, Debug)]
+pub enum Error {
+    #[error(display = "Error inside libvirt")]
+    VirtError(#[error(cause)] VirtError),
+    #[error(display = "Invalid URI")]
+    InvalidUri(#[error(cause)] std::ffi::NulError),
+}
+
+impl From<VirtError> for Error {
+    fn from(e: VirtError) -> Self {
+        Error::VirtError(e)
+    }
+}
 
 /// An error from libvirt.
 pub struct VirtError(virErrorPtr);
@@ -25,6 +38,16 @@ impl VirtError {
             panic!("Unable to allocate memory for libvirt error");
         }
         Self(error_ptr)
+    }
+
+    /// Returns a `VirtError` object using the provided pointer.
+    ///
+    /// # Safety
+    ///
+    /// This new error instance will assume ownership of the virError behind the pointer.
+    /// The returned instance will call `virFreeError(ptr)` on the given pointer when dropped.
+    pub unsafe fn from_ptr(ptr: virErrorPtr) -> Self {
+        Self(ptr)
     }
 
     /// Returns a pointer to the underlying libvirt error. Pointer is valid
@@ -61,7 +84,7 @@ impl fmt::Display for VirtError {
             VIR_ERR_ERROR => "Error",
             _ => "Unknown error level",
         };
-        write!(f, "[{}] {}", level, self.message())
+        write!(f, "{}: {}", level, self.message())
     }
 }
 
