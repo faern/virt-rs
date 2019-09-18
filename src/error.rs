@@ -1,10 +1,10 @@
+use std::borrow::Cow;
+use std::ffi::CStr;
+use std::fmt;
 use virt_sys::{
     virError, virErrorPtr, virFreeError, virSaveLastError, VIR_ERR_ERROR, VIR_ERR_NONE,
     VIR_ERR_WARNING,
 };
-use std::borrow::Cow;
-use std::ffi::CStr;
-use std::fmt;
 
 #[derive(err_derive::Error, Debug)]
 pub enum Error {

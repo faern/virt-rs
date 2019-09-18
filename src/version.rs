@@ -1,7 +1,7 @@
-use virt_sys::virGetVersion;
 use std::fmt;
 use std::os::raw::c_ulong;
 use std::ptr;
+use virt_sys::virGetVersion;
 
 use crate::error::VirtError;
 
