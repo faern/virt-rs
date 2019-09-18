@@ -12,3 +12,6 @@ mod error;
 pub use error::{Error, VirtError};
 
 pub mod version;
+
+mod wrapper;
+pub use wrapper::Wrapper;

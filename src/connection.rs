@@ -40,22 +40,6 @@ impl Connection {
         }
     }
 
-    /// Returns an instance backed by the given pointer.
-    ///
-    /// # Safety
-    ///
-    /// This method assumes it can take over ownership of the connection behind the pointer.
-    /// The instance will call `virConnectClose` on the given pointer when it goes out of scope.
-    pub unsafe fn from_ptr(ptr: virConnectPtr) -> Self {
-        Self(ptr)
-    }
-
-    /// Returns a pointer to the underlying libvirt struct. The pointer is valid
-    /// as long as this connection instance is in scope.
-    pub fn as_ptr(&self) -> virConnectPtr {
-        self.0
-    }
-
     /// Returns the system hostname on which the hypervisor is running.
     pub fn hostname(&self) -> Result<String, Error> {
         let hostname_ptr = cvt_null!(unsafe { virConnectGetHostname(self.0) })?;
@@ -156,6 +140,26 @@ impl Connection {
             -1 => Err(VirtError::last_virt_error()),
             _ => Ok(()),
         }
+    }
+}
+
+impl crate::Wrapper for Connection {
+    type Ptr = virConnectPtr;
+
+    /// Returns an instance backed by the given pointer.
+    ///
+    /// # Safety
+    ///
+    /// This method assumes it can take over ownership of the connection behind the pointer.
+    /// The instance will call `virConnectClose` on the given pointer when it goes out of scope.
+    unsafe fn from_ptr(ptr: virConnectPtr) -> Self {
+        Self(ptr)
+    }
+
+    /// Returns a pointer to the underlying libvirt struct. The pointer is valid
+    /// as long as this connection instance is in scope.
+    fn as_ptr(&self) -> virConnectPtr {
+        self.0
     }
 }
 
