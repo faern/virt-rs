@@ -9,7 +9,7 @@ fn main() {
         Err(e) => eprintln!("Unable to get local lib version: {}", e),
     }
 
-    let connection = Connection::open_default().expect("Unable to connect");
+    let connection = Connection::builder().open().expect("Unable to connect");
     println!("Hypervisor:");
     println!("\tURI: {}", connection.uri().expect("Unable to get URI"));
     println!("\thostname: {}", connection.hostname().unwrap());

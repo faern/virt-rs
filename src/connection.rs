@@ -1,43 +1,78 @@
-use crate::error::{Error, VirtError};
+use crate::{Error, VirtError};
 use std::ffi::{CStr, CString};
-use std::os::raw::{c_char, c_ulong};
+use std::os::raw::c_ulong;
 use std::ptr;
 use virt_sys::{
     virConnectClose, virConnectGetHostname, virConnectGetLibVersion, virConnectGetType,
-    virConnectGetURI, virConnectGetVersion, virConnectOpen, virConnectPtr, virConnectRef,
+    virConnectGetURI, virConnectGetVersion, virConnectPtr, virConnectRef,
 };
+
+/// A [Connection] builder.
+#[derive(Debug, Default)]
+pub struct Builder {
+    uri: Option<CString>,
+    flags: virt_sys::virConnectFlags,
+}
+
+impl Builder {
+    /// Sets the URI to the hypervisor to connect to. If no URI is set the environment variable
+    /// `LIBVIRT_DEFAULT_URI` will be used, if set. Otherwise if the client configuration file
+    /// has the "uri_default" parameter set, then it will be used. Finally probing will be done
+    /// to determine a suitable default driver to activate. This involves trying each hypervisor
+    /// in turn until one successfully opens.
+    ///
+    /// URIs are documented at https://libvirt.org/uri.html
+    pub fn uri(&mut self, uri: &str) -> Result<&mut Self, Error> {
+        self.uri = Some(CString::new(uri).map_err(Error::InvalidUri)?);
+        Ok(self)
+    }
+
+    /// Lower level version of [Builder::uri]. This version does not risk running into the
+    /// `InvalidUri` error.
+    pub fn uri_cstr(&mut self, uri: impl Into<CString>) -> &mut Self {
+        self.uri = Some(uri.into());
+        self
+    }
+
+    /// Sets whether or not the opened connection should be read only or not
+    pub fn read_only(&mut self, read_only: bool) -> &mut Self {
+        if read_only {
+            self.flags |= virt_sys::VIR_CONNECT_RO;
+        } else {
+            self.flags &= !virt_sys::VIR_CONNECT_RO;
+        }
+        self
+    }
+
+    /// Sets whether or not the opened connection should try to resolve URI aliases or not.
+    pub fn no_aliases(&mut self, no_aliases: bool) -> &mut Self {
+        if no_aliases {
+            self.flags |= virt_sys::VIR_CONNECT_NO_ALIASES;
+        } else {
+            self.flags &= !virt_sys::VIR_CONNECT_NO_ALIASES;
+        }
+        self
+    }
+
+    /// Tries to open a connection to the configured hypervisor.
+    pub fn open(&self) -> Result<Connection, VirtError> {
+        let uri_ptr = match &self.uri {
+            Some(uri) => uri.as_ptr(),
+            None => ptr::null(),
+        };
+        let connection_ptr = cvt_null!(unsafe {
+            virt_sys::virConnectOpenAuth(uri_ptr, ptr::null_mut(), self.flags)
+        })?;
+        Ok(Connection(connection_ptr))
+    }
+}
 
 pub struct Connection(virConnectPtr);
 
 impl Connection {
-    /// Tries to open a connection to the hypervisor at externally defined URI.
-    /// If the environment variable `LIBVIRT_DEFAULT_URI` is set, then it will be used.
-    /// Otherwise if the client configuration file has the "uri_default" parameter set,
-    /// then it will be used. Finally probing will be done to determine a suitable default driver
-    /// to activate. This involves trying each hypervisor in turn until one successfully opens.
-    pub fn open_default() -> Result<Self, Error> {
-        unsafe { Self::open_internal(ptr::null()).map_err(Error::VirtError) }
-    }
-
-    /// Tries to open a connection to the hypervisor at the given URI.
-    pub fn open_uri(uri: &str) -> Result<Self, Error> {
-        let c_uri = CString::new(uri).map_err(Error::InvalidUri)?;
-        Self::open_c_uri(&c_uri).map_err(Error::VirtError)
-    }
-
-    /// Tries to open a connection to the hypervisor with a C string URI directly.
-    /// This method avoids the possible `InvalidUri` error that `open_uri` can run into.
-    pub fn open_c_uri(uri: &CStr) -> Result<Self, VirtError> {
-        unsafe { Self::open_internal(uri.as_ptr()) }
-    }
-
-    unsafe fn open_internal(uri_ptr: *const c_char) -> Result<Self, VirtError> {
-        let connect_ptr = virConnectOpen(uri_ptr);
-        if connect_ptr.is_null() {
-            Err(VirtError::last_virt_error())
-        } else {
-            Ok(Self(connect_ptr))
-        }
+    /// Returns a builder for [Connection]s.
+    pub fn builder() -> Builder {
+        Builder::default()
     }
 
     /// Returns the system hostname on which the hypervisor is running.
