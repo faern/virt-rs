@@ -1,5 +1,5 @@
 /// Re-export of the underlying FFI bindings to the C version of libvirt.
-pub use virt_sys;
+pub use virt_sys as sys;
 
 #[macro_use]
 mod macros;
