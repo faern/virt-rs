@@ -95,12 +95,8 @@ impl Connection {
 
     /// See [`hypervisor_type`].
     pub fn hypervisor_type_cstr(&self) -> Result<&'static CStr, VirtError> {
-        let ptr = unsafe { virConnectGetType(self.0) };
-        if ptr.is_null() {
-            Err(VirtError::last_virt_error())
-        } else {
-            Ok(unsafe { CStr::from_ptr(ptr) })
-        }
+        let ptr = cvt_null!(unsafe { virConnectGetType(self.0) })?;
+        Ok(unsafe { CStr::from_ptr(ptr) })
     }
 
     /// Returns the version of libvirt used by the hypervisor this connection is connected to.
