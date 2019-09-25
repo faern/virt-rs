@@ -19,7 +19,8 @@ The issues I had with the official bindings:
 * Explicitly states that they are a direct mapping of the underlying C API. Meaning it
   intentionally won't do proper resource freeing on dropped instances and other things one
   would expect from a nice Rust API.
-* Unsoundness/invalid memory access in `Stream::recv`. This is what I tried to patch.
+* Unsoundness/invalid memory access in `Stream::recv`.
+  https://www.redhat.com/archives/libvir-list/2019-September/msg00764.html
 * Converts between C stings and Rust strings without any error handling. Panics on any string
   content that is not compatible in the other format.
 * Unsoundness in all constructors. All safe wrappers can be created without `unsafe` with raw
@@ -30,7 +31,7 @@ The issues I had with the official bindings:
   ```
   These constructons must be `unsafe`. They should probably be named `from_ptr` and be put further
   down in the `impl` block as well. They are not supposed to be the main way of creating the safe
-  wrappers.
+  wrappers. https://www.redhat.com/archives/libvir-list/2019-September/msg01139.html
 * No separation between raw FFI bindings and higher level safe bindings. The more standard design
   would be to have a separate `virt-sys` crate with `bindgen` generated direct bindings. This will
   make maintaining and verifying the raw bindings easier, and the source files of the higer level
