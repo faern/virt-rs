@@ -1,8 +1,6 @@
 use crate::{wrapper::Wrapper, Connection, Error, VirtError};
 use std::{ffi::CString, mem};
-use virt_sys::{
-    virDomainAttachDevice, virDomainCreateXML, virDomainFree, virDomainPtr, virDomainRef,
-};
+use virt_sys::{virDomainAttachDevice, virDomainCreateXML, virDomainPtr, virDomainRef};
 
 bitflags::bitflags! {
     /// Flags affecting the starting of transient domains
@@ -39,6 +37,21 @@ impl Domain {
         Ok(Domain(ptr))
     }
 
+    /// Rename a domain. Depending on each driver implementation it may be required that domain is
+    /// in a specific state.
+    ///
+    /// There might be some attributes and/or elements in domain XML that if no value provided at
+    /// XML defining time, libvirt will derive their value from the domain name. These are not
+    /// updated by this API. Users are strongly advised to change these after the rename was
+    /// successful.
+    pub fn rename(&self, new_name: &str) -> Result<(), Error> {
+        let new_name_cstr = CString::new(new_name).map_err(Error::InvalidName)?;
+        match unsafe { virt_sys::virDomainRename(self.0, new_name_cstr.as_ptr(), 0) } {
+            -1 => Err(Error::from(VirtError::last_virt_error())),
+            _ => Ok(()),
+        }
+    }
+
     /// Free the domain object. The running instance is kept alive.
     /// If this is not explicitly called it will be called by the `Drop` implementation.
     pub fn free(self) -> Result<(), VirtError> {
@@ -48,7 +61,7 @@ impl Domain {
     }
 
     fn free_internal(&self) -> Result<(), VirtError> {
-        match unsafe { virDomainFree(self.0) } {
+        match unsafe { virt_sys::virDomainFree(self.0) } {
             -1 => Err(VirtError::last_virt_error()),
             _ => Ok(()),
         }
