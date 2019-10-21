@@ -74,6 +74,20 @@ impl Domain {
         }
     }
 
+    /// Shutdown a domain, the domain object is still usable thereafter, but the domain OS is being
+    /// stopped. Note that the guest OS may ignore the request. Additionally, the hypervisor may
+    /// check and support the domain 'on_poweroff' XML setting resulting in a domain that reboots
+    /// instead of shutting down. For guests that react to a shutdown request, the differences from
+    /// [Domain::destroy] are that the guests disk storage will be in a stable state rather than
+    /// having the (virtual) power cord pulled, and this command returns as soon as the shutdown
+    /// request is issued rather than blocking until the guest is no longer running.
+    pub fn shutdown(&self) -> Result<(), VirtError> {
+        match unsafe { virt_sys::virDomainShutdown(self.0) } {
+            -1 => Err(VirtError::last_virt_error()),
+            _ => Ok(()),
+        }
+    }
+
     /// Free the domain object. The running instance is kept alive.
     /// If this is not explicitly called it will be called by the `Drop` implementation.
     pub fn free(self) -> Result<(), VirtError> {
