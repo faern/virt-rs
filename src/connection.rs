@@ -1,7 +1,7 @@
-use crate::{Error, VirtError};
+use crate::{Domain, Error, VirtError};
 use std::ffi::{CStr, CString};
 use std::os::raw::c_ulong;
-use std::ptr;
+use std::{mem, ptr};
 use virt_sys::{
     virConnectClose, virConnectGetHostname, virConnectGetLibVersion, virConnectGetType,
     virConnectGetURI, virConnectGetVersion, virConnectPtr, virConnectRef,
@@ -160,10 +160,21 @@ impl Connection {
         }
     }
 
+    pub fn create_domain(
+        &self,
+        xml: &str,
+        flags: crate::domain::CreateFlags,
+    ) -> Result<Domain, Error> {
+        Domain::create_from_xml(self, xml, flags)
+    }
+
     /// Closes the connection. If this connection has been cloned it just decrements the
     /// reference count. The connection is actually closed when the last instance is closed.
+    /// This happens automatically in the `Drop` implementation if not explicitly called.
     pub fn close(self) -> Result<(), VirtError> {
-        self.close_internal()
+        let result = self.close_internal();
+        mem::forget(self);
+        result
     }
 
     fn close_internal(&self) -> Result<(), VirtError> {
@@ -177,30 +188,19 @@ impl Connection {
 impl crate::Wrapper for Connection {
     type Ptr = virConnectPtr;
 
-    /// Returns an instance backed by the given pointer.
-    ///
-    /// # Safety
-    ///
-    /// This method assumes it can take over ownership of the connection behind the pointer.
-    /// The instance will call `virConnectClose` on the given pointer when it goes out of scope.
-    unsafe fn from_ptr(ptr: virConnectPtr) -> Self {
+    unsafe fn from_ptr(ptr: Self::Ptr) -> Self {
         Self(ptr)
     }
 
-    /// Returns a pointer to the underlying libvirt struct. The pointer is valid
-    /// as long as this connection instance is in scope.
-    fn as_ptr(&self) -> virConnectPtr {
+    fn as_ptr(&self) -> Self::Ptr {
         self.0
     }
 }
 
 impl Clone for Connection {
     fn clone(&self) -> Self {
-        assert_eq!(
-            unsafe { virConnectRef(self.0) },
-            0,
-            "Unexpected error from virConnectRef"
-        );
+        let ret = unsafe { virConnectRef(self.0) };
+        assert_eq!(ret, 0, "Unexpected error from virConnectRef");
         Self(self.0)
     }
 }

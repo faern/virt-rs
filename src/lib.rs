@@ -8,6 +8,9 @@ mod macros;
 pub mod connection;
 pub use connection::Connection;
 
+pub mod domain;
+pub use domain::Domain;
+
 mod error;
 pub use error::{Error, VirtError};
 

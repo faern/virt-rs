@@ -12,6 +12,8 @@ pub enum Error {
     VirtError(#[error(cause)] VirtError),
     #[error(display = "Invalid URI")]
     InvalidUri(#[error(cause)] std::ffi::NulError),
+    #[error(display = "Invalid XML")]
+    InvalidXml(#[error(cause)] std::ffi::NulError),
     #[error(display = "String is not valid UTF-8")]
     Utf8Error(#[error(cause)] std::str::Utf8Error),
 
