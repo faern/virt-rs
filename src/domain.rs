@@ -21,6 +21,14 @@ bitflags::bitflags! {
         const VALIDATE =  virt_sys::VIR_DOMAIN_START_VALIDATE;
     }
 }
+bitflags::bitflags! {
+    pub struct DeviceModifyFlags: u32 {
+        const CONFIG = virt_sys::VIR_DOMAIN_DEVICE_MODIFY_CONFIG;
+        const CURRENT = virt_sys::VIR_DOMAIN_DEVICE_MODIFY_CURRENT;
+        const LIVE = virt_sys::VIR_DOMAIN_DEVICE_MODIFY_LIVE;
+        const FORCE = virt_sys::VIR_DOMAIN_DEVICE_MODIFY_FORCE;
+    }
+}
 
 pub struct Domain(virDomainPtr);
 
@@ -35,6 +43,27 @@ impl Domain {
             virDomainCreateXML(connection.as_ptr(), xml_cstr.as_ptr(), flags.bits())
         })?;
         Ok(Domain(ptr))
+    }
+
+    /// Attach a virtual device to a domain, using the flags parameter to control how the device is
+    /// attached. [DeviceModifyFlags::CURRENT] specifies that the device allocation is made based
+    /// on current domain state. [DeviceModifyFlags::LIVE] specifies that the device shall be
+    /// allocated to the active domain instance only and is not added to the persisted domain
+    /// configuration. [DeviceModifyflags::CONFIG] specifies that the device shall be allocated to
+    /// the persisted domain configuration only. Note that the target hypervisor must return an
+    /// error if unable to satisfy flags. E.g. the hypervisor driver will return failure if LIVE
+    /// is specified but it only supports modifying the persisted device allocation.
+    ///
+    /// Be aware that hotplug changes might not persist across a domain going into S4 state
+    /// (also known as hibernation) unless you also modify the persistent domain definition.
+    pub fn attach_device(&self, xml: &str, flags: DeviceModifyFlags) -> Result<(), Error> {
+        let xml_cstr = CString::new(xml).map_err(Error::InvalidXml)?;
+        match unsafe {
+            virt_sys::virDomainAttachDeviceFlags(self.0, xml_cstr.as_ptr(), flags.bits())
+        } {
+            -1 => Err(Error::from(VirtError::last_virt_error())),
+            _ => Ok(()),
+        }
     }
 
     /// Rename a domain. Depending on each driver implementation it may be required that domain is
