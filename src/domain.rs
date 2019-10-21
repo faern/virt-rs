@@ -52,6 +52,28 @@ impl Domain {
         }
     }
 
+    /// Resume a suspended domain, the process is restarted from the state where it was frozen by
+    /// calling [Domain::suspend]. This function may require privileged access. Moreover, resume may not
+    /// be supported if domain is in some special state like VIR_DOMAIN_PMSUSPENDED.
+    pub fn resume(&self) -> Result<(), VirtError> {
+        match unsafe { virt_sys::virDomainResume(self.0) } {
+            -1 => Err(VirtError::last_virt_error()),
+            _ => Ok(()),
+        }
+    }
+
+    /// Suspends an active domain, the process is frozen without further access to CPU resources
+    /// and I/O but the memory used by the domain at the hypervisor level will stay allocated. Use
+    /// [Domain::resume] to reactivate the domain. This function may require privileged access.
+    /// Moreover, suspend may not be supported if domain is in some special state like
+    /// VIR_DOMAIN_PMSUSPENDED.
+    pub fn suspend(&self) -> Result<(), VirtError> {
+        match unsafe { virt_sys::virDomainSuspend(self.0) } {
+            -1 => Err(VirtError::last_virt_error()),
+            _ => Ok(()),
+        }
+    }
+
     /// Free the domain object. The running instance is kept alive.
     /// If this is not explicitly called it will be called by the `Drop` implementation.
     pub fn free(self) -> Result<(), VirtError> {
