@@ -32,6 +32,10 @@ bitflags::bitflags! {
 
 pub struct Domain(virDomainPtr);
 
+// Safety: libvirt is thread safe since 0.6.0. It can handle multiple threads making calls to the
+// same virConnect instance.
+unsafe impl Send for Domain {}
+
 impl Domain {
     pub(crate) fn create_from_xml(
         connection: &Connection,

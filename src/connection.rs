@@ -69,6 +69,10 @@ impl Builder {
 
 pub struct Connection(virConnectPtr);
 
+// Safety: libvirt is thread safe since 0.6.0. It can handle multiple threads making calls to the
+// same virConnect instance.
+unsafe impl Send for Connection {}
+
 impl Connection {
     /// Returns a builder for [Connection]s.
     pub fn builder() -> Builder {
