@@ -1,10 +1,4 @@
-use std::borrow::Cow;
-use std::ffi::CStr;
-use std::fmt;
-use virt_sys::{
-    virError, virErrorPtr, virFreeError, virSaveLastError, VIR_ERR_ERROR, VIR_ERR_NONE,
-    VIR_ERR_WARNING,
-};
+use std::{borrow::Cow, ffi::CStr, fmt};
 
 #[derive(err_derive::Error, Debug)]
 pub enum Error {
@@ -33,7 +27,7 @@ impl From<VirtError> for Error {
 }
 
 /// An error from libvirt.
-pub struct VirtError(virErrorPtr);
+pub struct VirtError(virt_sys::virErrorPtr);
 
 // Safety: libvirt is thread safe since 0.6.0. It can handle multiple threads making calls to the
 // same virConnect instance.
@@ -49,7 +43,7 @@ impl VirtError {
     ///
     /// Panics when unable to allocate heap memory for the error struct.
     pub fn last_virt_error() -> Self {
-        let error_ptr = unsafe { virSaveLastError() };
+        let error_ptr = unsafe { virt_sys::virSaveLastError() };
         if error_ptr.is_null() {
             panic!("Unable to allocate memory for libvirt error");
         }
@@ -62,19 +56,19 @@ impl VirtError {
     ///
     /// This new error instance will assume ownership of the virError behind the pointer.
     /// The returned instance will call `virFreeError(ptr)` on the given pointer when dropped.
-    pub unsafe fn from_ptr(ptr: virErrorPtr) -> Self {
+    pub unsafe fn from_ptr(ptr: virt_sys::virErrorPtr) -> Self {
         Self(ptr)
     }
 
     /// Returns a pointer to the underlying libvirt error. Pointer is valid
     /// as long as this `Error` is in scope.
-    pub fn as_ptr(&self) -> virErrorPtr {
+    pub fn as_ptr(&self) -> virt_sys::virErrorPtr {
         self.0
     }
 
     /// Returns a Rust reference to the underlying libvirt error struct.
     /// Allows reading some individual field values without `unsafe {}`.
-    pub fn as_ref(&self) -> &virError {
+    pub fn as_ref(&self) -> &virt_sys::virError {
         unsafe { &*self.0 }
     }
 
@@ -86,7 +80,7 @@ impl VirtError {
 
 impl Drop for VirtError {
     fn drop(&mut self) {
-        unsafe { virFreeError(self.0) }
+        unsafe { virt_sys::virFreeError(self.0) }
     }
 }
 
@@ -95,9 +89,9 @@ impl std::error::Error for VirtError {}
 impl fmt::Display for VirtError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let level = match self.as_ref().level {
-            VIR_ERR_NONE => "No error",
-            VIR_ERR_WARNING => "Warning",
-            VIR_ERR_ERROR => "Error",
+            virt_sys::VIR_ERR_NONE => "No error",
+            virt_sys::VIR_ERR_WARNING => "Warning",
+            virt_sys::VIR_ERR_ERROR => "Error",
             _ => "Unknown error level",
         };
         write!(f, "{}: {}", level, self.message())

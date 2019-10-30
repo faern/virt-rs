@@ -1,10 +1,9 @@
 use crate::{Domain, Error, VirtError};
-use std::ffi::{CStr, CString};
-use std::os::raw::c_ulong;
-use std::{mem, ptr};
-use virt_sys::{
-    virConnectClose, virConnectGetHostname, virConnectGetLibVersion, virConnectGetType,
-    virConnectGetURI, virConnectGetVersion, virConnectPtr, virConnectRef,
+use std::{
+    ffi::{CStr, CString},
+    mem,
+    os::raw::c_ulong,
+    ptr,
 };
 
 /// A [Connection] builder.
@@ -67,7 +66,7 @@ impl Builder {
     }
 }
 
-pub struct Connection(virConnectPtr);
+pub struct Connection(virt_sys::virConnectPtr);
 
 // Safety: libvirt is thread safe since 0.6.0. It can handle multiple threads making calls to the
 // same virConnect instance.
@@ -81,7 +80,7 @@ impl Connection {
 
     /// Returns the system hostname on which the hypervisor is running.
     pub fn hostname(&self) -> Result<String, Error> {
-        let hostname_ptr = cvt_null!(unsafe { virConnectGetHostname(self.0) })?;
+        let hostname_ptr = cvt_null!(unsafe { virt_sys::virConnectGetHostname(self.0) })?;
         let hostname = unsafe { CStr::from_ptr(hostname_ptr) }
             .to_str()
             .map(str::to_owned);
@@ -92,7 +91,7 @@ impl Connection {
     }
 
     pub fn hostname_cstr(&self) -> Result<CString, VirtError> {
-        let hostname_ptr = cvt_null!(unsafe { virConnectGetHostname(self.0) })?;
+        let hostname_ptr = cvt_null!(unsafe { virt_sys::virConnectGetHostname(self.0) })?;
         let hostname = unsafe {
             CString::from_vec_unchecked(CStr::from_ptr(hostname_ptr).to_bytes().to_vec())
         };
@@ -103,7 +102,7 @@ impl Connection {
     }
 
     pub fn uri(&self) -> Result<String, Error> {
-        let uri_ptr = cvt_null!(unsafe { virConnectGetURI(self.0) })?;
+        let uri_ptr = cvt_null!(unsafe { virt_sys::virConnectGetURI(self.0) })?;
         let uri = unsafe { CStr::from_ptr(uri_ptr) }
             .to_str()
             .map(str::to_owned);
@@ -114,7 +113,7 @@ impl Connection {
     }
 
     pub fn uri_cstr(&self) -> Result<CString, VirtError> {
-        let uri_ptr = cvt_null!(unsafe { virConnectGetURI(self.0) })?;
+        let uri_ptr = cvt_null!(unsafe { virt_sys::virConnectGetURI(self.0) })?;
         let uri =
             unsafe { CString::from_vec_unchecked(CStr::from_ptr(uri_ptr).to_bytes().to_vec()) };
         unsafe {
@@ -134,14 +133,14 @@ impl Connection {
 
     /// See [`hypervisor_type`].
     pub fn hypervisor_type_cstr(&self) -> Result<&'static CStr, VirtError> {
-        let ptr = cvt_null!(unsafe { virConnectGetType(self.0) })?;
+        let ptr = cvt_null!(unsafe { virt_sys::virConnectGetType(self.0) })?;
         Ok(unsafe { CStr::from_ptr(ptr) })
     }
 
     /// Returns the version of libvirt used by the hypervisor this connection is connected to.
     pub fn lib_version(&self) -> Result<crate::version::Version, VirtError> {
         let mut lib_ver: c_ulong = 0;
-        match unsafe { virConnectGetLibVersion(self.0, &mut lib_ver) } {
+        match unsafe { virt_sys::virConnectGetLibVersion(self.0, &mut lib_ver) } {
             -1 => Err(VirtError::last_virt_error()),
             0 => Ok(crate::version::Version::from(lib_ver)),
             i => panic!(
@@ -153,7 +152,7 @@ impl Connection {
 
     pub fn hypervisor_version(&self) -> Result<Option<crate::version::Version>, VirtError> {
         let mut hv_ver: c_ulong = 0;
-        match unsafe { virConnectGetVersion(self.0, &mut hv_ver) } {
+        match unsafe { virt_sys::virConnectGetVersion(self.0, &mut hv_ver) } {
             -1 => Err(VirtError::last_virt_error()),
             0 => Ok(if hv_ver == 0 {
                 None
@@ -182,7 +181,7 @@ impl Connection {
     }
 
     fn close_internal(&self) -> Result<(), VirtError> {
-        match unsafe { virConnectClose(self.0) } {
+        match unsafe { virt_sys::virConnectClose(self.0) } {
             -1 => Err(VirtError::last_virt_error()),
             _ => Ok(()),
         }
@@ -190,7 +189,7 @@ impl Connection {
 }
 
 impl crate::Wrapper for Connection {
-    type Ptr = virConnectPtr;
+    type Ptr = virt_sys::virConnectPtr;
 
     unsafe fn from_ptr(ptr: Self::Ptr) -> Self {
         Self(ptr)
@@ -203,7 +202,7 @@ impl crate::Wrapper for Connection {
 
 impl Clone for Connection {
     fn clone(&self) -> Self {
-        let ret = unsafe { virConnectRef(self.0) };
+        let ret = unsafe { virt_sys::virConnectRef(self.0) };
         assert_eq!(ret, 0, "Unexpected error from virConnectRef");
         Self(self.0)
     }

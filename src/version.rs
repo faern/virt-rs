@@ -1,9 +1,5 @@
-use std::fmt;
-use std::os::raw::c_ulong;
-use std::ptr;
-use virt_sys::virGetVersion;
-
 use crate::error::VirtError;
+use std::{fmt, os::raw::c_ulong, ptr};
 
 /// A software version.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -40,7 +36,7 @@ pub fn lib_version() -> Result<Version, VirtError> {
 /// Returns the unparsed version of the backing libvirt C implementation in use by this library.
 fn unparsed_lib_version() -> Result<c_ulong, VirtError> {
     let mut lib_ver: c_ulong = 0;
-    match unsafe { virGetVersion(&mut lib_ver, ptr::null(), ptr::null_mut()) } {
+    match unsafe { virt_sys::virGetVersion(&mut lib_ver, ptr::null(), ptr::null_mut()) } {
         -1 => Err(VirtError::last_virt_error()),
         0 => Ok(lib_ver),
         i => panic!("Unexpected return value from virGetVersion: {}", i),

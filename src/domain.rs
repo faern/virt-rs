@@ -1,6 +1,5 @@
 use crate::{wrapper::Wrapper, Connection, Error, VirtError};
 use std::{ffi::CString, mem};
-use virt_sys::{virDomainAttachDevice, virDomainCreateXML, virDomainPtr, virDomainRef};
 
 bitflags::bitflags! {
     /// Flags affecting the starting of transient domains
@@ -30,13 +29,14 @@ bitflags::bitflags! {
     }
 }
 
-pub struct Domain(virDomainPtr);
+pub struct Domain(virt_sys::virDomainPtr);
 
 // Safety: libvirt is thread safe since 0.6.0. It can handle multiple threads making calls to the
 // same virConnect instance.
 unsafe impl Send for Domain {}
 
 impl Domain {
+    /// See [Connection::create_domain].
     pub(crate) fn create_from_xml(
         connection: &Connection,
         xml: &str,
@@ -44,7 +44,7 @@ impl Domain {
     ) -> Result<Self, Error> {
         let xml_cstr = CString::new(xml).map_err(Error::InvalidXml)?;
         let ptr = cvt_null!(unsafe {
-            virDomainCreateXML(connection.as_ptr(), xml_cstr.as_ptr(), flags.bits())
+            virt_sys::virDomainCreateXML(connection.as_ptr(), xml_cstr.as_ptr(), flags.bits())
         })?;
         Ok(Domain(ptr))
     }
@@ -138,7 +138,7 @@ impl Domain {
 }
 
 impl crate::Wrapper for Domain {
-    type Ptr = virDomainPtr;
+    type Ptr = virt_sys::virDomainPtr;
 
     unsafe fn from_ptr(ptr: Self::Ptr) -> Self {
         Self(ptr)
@@ -151,7 +151,7 @@ impl crate::Wrapper for Domain {
 
 impl Clone for Domain {
     fn clone(&self) -> Self {
-        let ret = unsafe { virDomainRef(self.0) };
+        let ret = unsafe { virt_sys::virDomainRef(self.0) };
         assert_eq!(ret, 0, "Unexpected error from virDomainRef");
         Self(self.0)
     }
