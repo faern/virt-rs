@@ -50,22 +50,6 @@ impl VirtError {
         Self(error_ptr)
     }
 
-    /// Returns a `VirtError` object using the provided pointer.
-    ///
-    /// # Safety
-    ///
-    /// This new error instance will assume ownership of the virError behind the pointer.
-    /// The returned instance will call `virFreeError(ptr)` on the given pointer when dropped.
-    pub unsafe fn from_ptr(ptr: virt_sys::virErrorPtr) -> Self {
-        Self(ptr)
-    }
-
-    /// Returns a pointer to the underlying libvirt error. Pointer is valid
-    /// as long as this `Error` is in scope.
-    pub fn as_ptr(&self) -> virt_sys::virErrorPtr {
-        self.0
-    }
-
     /// Returns a Rust reference to the underlying libvirt error struct.
     /// Allows reading some individual field values without `unsafe {}`.
     pub fn as_ref(&self) -> &virt_sys::virError {
@@ -75,6 +59,18 @@ impl VirtError {
     /// Returns the human-readable informative error message given by libvirt.
     pub fn message(&self) -> Cow<str> {
         unsafe { CStr::from_ptr(self.as_ref().message) }.to_string_lossy()
+    }
+}
+
+impl crate::Wrapper for VirtError {
+    type Ptr = virt_sys::virErrorPtr;
+
+    unsafe fn from_ptr(ptr: Self::Ptr) -> Self {
+        Self(ptr)
+    }
+
+    fn as_ptr(&self) -> Self::Ptr {
+        self.0
     }
 }
 
