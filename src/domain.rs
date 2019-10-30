@@ -29,6 +29,20 @@ bitflags::bitflags! {
     }
 }
 
+/// Various ways to handle the termination of a domain when calling [Domain::destroy].
+pub enum DestroyMode {
+    /// Never forcefully kill the domain. If it does not shut down gracefully in a timely manner,
+    /// an error is returned.
+    Graceful,
+
+    /// Kills the domain (e.g. SIGKILL) if it does not shut down gracefully a while after receiving
+    /// the first shutdown signal.
+    ///
+    /// Killing a domain may produce undesirable results, for example unflushed disk cache in the
+    /// guest.
+    KillAfterTimeout,
+}
+
 pub struct Domain(virt_sys::virDomainPtr);
 
 // Safety: libvirt is thread safe since 0.6.0. It can handle multiple threads making calls to the
@@ -121,8 +135,30 @@ impl Domain {
         }
     }
 
+    /// Destroy the domain object. The running instance is shutdown if not down already and all
+    /// resources used by it are given back to the hypervisor. This function may require privileged
+    /// access.
+    ///
+    /// Calling this method first requests that the guest terminate (e.g. SIGTERM), then waits
+    /// for it to comply. After a reasonable timeout, if the guest still exists, then it depends
+    /// on the `mode`, see [DestroyMode].
+    pub fn destroy(&self, mode: DestroyMode) -> Result<(), VirtError> {
+        let flags = match mode {
+            DestroyMode::KillAfterTimeout => virt_sys::VIR_DOMAIN_DESTROY_DEFAULT,
+            DestroyMode::Graceful => virt_sys::VIR_DOMAIN_DESTROY_GRACEFUL,
+        };
+        match unsafe { virt_sys::virDomainDestroyFlags(self.0, flags) } {
+            -1 => Err(VirtError::last_virt_error()),
+            _ => Ok(()),
+        }
+    }
+
     /// Free the domain object. The running instance is kept alive.
-    /// If this is not explicitly called it will be called by the `Drop` implementation.
+    /// If this is not explicitly called it will be called by the `Drop` implementation. And any
+    /// error will be logged to the error level.
+    ///
+    /// The only reason to call this explicitly is if you want to handle the error in some other
+    /// way than just logging it.
     pub fn free(self) -> Result<(), VirtError> {
         let result = self.free_internal();
         mem::forget(self);
