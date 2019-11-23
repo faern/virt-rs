@@ -48,6 +48,7 @@ pub struct Domain(virt_sys::virDomainPtr);
 // Safety: libvirt is thread safe since 0.6.0. It can handle multiple threads making calls to the
 // same virConnect instance.
 unsafe impl Send for Domain {}
+unsafe impl Sync for Domain {}
 
 impl Domain {
     /// See [Connection::create_domain].

@@ -71,6 +71,7 @@ pub struct Connection(virt_sys::virConnectPtr);
 // Safety: libvirt is thread safe since 0.6.0. It can handle multiple threads making calls to the
 // same virConnect instance.
 unsafe impl Send for Connection {}
+unsafe impl Sync for Connection {}
 
 impl Connection {
     /// Returns a builder for [Connection]s.
