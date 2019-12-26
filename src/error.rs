@@ -30,8 +30,9 @@ impl From<VirtError> for Error {
 pub struct VirtError(virt_sys::virErrorPtr);
 
 // Safety: libvirt is thread safe since 0.6.0. It can handle multiple threads making calls to the
-// same virConnect instance.
+// same virError instance.
 unsafe impl Send for VirtError {}
+unsafe impl Sync for VirtError {}
 
 impl VirtError {
     /// Returns the last error that happened inside libvirt.
