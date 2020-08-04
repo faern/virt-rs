@@ -1,28 +1,46 @@
-use std::{borrow::Cow, ffi::CStr, fmt};
+use std::borrow::Cow;
+use std::ffi::CStr;
+use std::fmt;
 
-#[derive(err_derive::Error, Debug)]
+#[non_exhaustive]
+#[derive(Debug)]
 pub enum Error {
-    #[error(display = "Error inside libvirt")]
-    VirtError(#[error(cause)] VirtError),
-    #[error(display = "Invalid URI")]
-    InvalidUri(#[error(cause)] std::ffi::NulError),
-    #[error(display = "Invalid XML")]
-    InvalidXml(#[error(cause)] std::ffi::NulError),
-    #[error(display = "Invalid name")]
-    InvalidName(#[error(cause)] std::ffi::NulError),
-    #[error(display = "String is not valid UTF-8")]
-    Utf8Error(#[error(cause)] std::str::Utf8Error),
-
-    /// You should never match on this error variant. This enum can grow, and the breaking version
-    /// number won't be bumped.
-    #[doc(hidden)]
-    #[error(display = "__Nonexhaustive")]
-    __Nonexhaustive,
+    VirtError(VirtError),
+    InvalidUri(std::ffi::NulError),
+    InvalidXml(std::ffi::NulError),
+    InvalidName(std::ffi::NulError),
+    Utf8Error(std::str::Utf8Error),
 }
 
 impl From<VirtError> for Error {
     fn from(e: VirtError) -> Self {
         Error::VirtError(e)
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use Error::*;
+        match self {
+            VirtError(e) => e.fmt(f),
+            InvalidUri(_) => "Invalid URI".fmt(f),
+            InvalidXml(_) => "Invalid XML".fmt(f),
+            InvalidName(_) => "Invalid name".fmt(f),
+            Utf8Error(_) => "String is not valid UTF-8".fmt(f),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        use Error::*;
+        match self {
+            VirtError(e) => e.source(),
+            InvalidUri(e) => Some(e),
+            InvalidXml(e) => Some(e),
+            InvalidName(e) => Some(e),
+            Utf8Error(e) => Some(e),
+        }
     }
 }
 
