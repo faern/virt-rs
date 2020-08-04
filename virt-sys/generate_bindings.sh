@@ -20,6 +20,7 @@ bindgen \
     --whitelist-type '^_?vir[A-Z].+$' \
     --whitelist-var '^(LIB)?VIR_.+$' \
     --blacklist-type '^__.+$' \
+    --blacklist-type 'size_t' \
     --raw-line 'use core::option::Option;' \
     -o $BINDING_OUTPUT_PATH \
     $LIB_PATH/include/libvirt/virterror.h \
@@ -34,6 +35,7 @@ sed -i 's/::core::option::Option/Option/g' $BINDING_OUTPUT_PATH
 #sed -i 's/_bindgen_ty_[0-9]\+/u32/g' $BINDING_OUTPUT_PATH
 #sed -i 's/pub type u32 = u32;//g' $BINDING_OUTPUT_PATH
 sed -i '/#\[derive(Debug, Copy, Clone)\]/d' $BINDING_OUTPUT_PATH
+sed -i 's/size_t/usize/g'  $BINDING_OUTPUT_PATH
 
 # Change struct bodies to (c_void);
 #   Search regex: {\n +_unused: \[u8; 0],\n}
