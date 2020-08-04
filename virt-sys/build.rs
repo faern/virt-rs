@@ -4,7 +4,27 @@ use std::{env, ffi::OsString, path::PathBuf};
 const LIB_NAME: &str = "virt";
 
 cfg_if::cfg_if! {
-    if #[cfg(feature = "libvirt-5-7-0")] {
+    if #[cfg(feature = "libvirt-6-6-0")] {
+        const MIN_VERSION: &str = "6.6.0";
+    } else if #[cfg(feature = "libvirt-6-5-0")] {
+        const MIN_VERSION: &str = "6.5.0";
+    } else if #[cfg(feature = "libvirt-6-4-0")] {
+        const MIN_VERSION: &str = "6.4.0";
+    } else if #[cfg(feature = "libvirt-6-3-0")] {
+        const MIN_VERSION: &str = "6.3.0";
+    } else if #[cfg(feature = "libvirt-6-2-0")] {
+        const MIN_VERSION: &str = "6.2.0";
+    } else if #[cfg(feature = "libvirt-6-1-0")] {
+        const MIN_VERSION: &str = "6.1.0";
+    } else if #[cfg(feature = "libvirt-6-0-0")] {
+        const MIN_VERSION: &str = "6.0.0";
+    } else if #[cfg(feature = "libvirt-5-10-0")] {
+        const MIN_VERSION: &str = "5.10.0";
+    } else if #[cfg(feature = "libvirt-5-9-0")] {
+        const MIN_VERSION: &str = "5.9.0";
+    } else if #[cfg(feature = "libvirt-5-8-0")] {
+        const MIN_VERSION: &str = "5.8.0";
+    } else if #[cfg(feature = "libvirt-5-7-0")] {
         const MIN_VERSION: &str = "5.7.0";
     } else if #[cfg(feature = "libvirt-5-6-0")] {
         const MIN_VERSION: &str = "5.6.0";

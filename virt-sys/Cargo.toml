@@ -9,8 +9,8 @@ links = "virt"
 edition = "2018"
 
 [features]
-# Without any activated features this will compile to libvirt-5.0.0 bindings.
-# Activate the corresponding version feature to get newer a newer API.
+# Without any activated cargo features this will compile to libvirt-5.0.0 bindings.
+# Activate the corresponding version feature to get the newer API.
 # As long as libvirt follow semver the minor bumps should be API compatible.
 libvirt-5-1-0 = []
 libvirt-5-2-0 = ["libvirt-5-1-0"]
@@ -19,6 +19,16 @@ libvirt-5-4-0 = ["libvirt-5-3-0"]
 libvirt-5-5-0 = ["libvirt-5-4-0"]
 libvirt-5-6-0 = ["libvirt-5-5-0"]
 libvirt-5-7-0 = ["libvirt-5-6-0"]
+libvirt-5-8-0 = ["libvirt-5-7-0"]
+libvirt-5-9-0 = ["libvirt-5-8-0"]
+libvirt-5-10-0 = ["libvirt-5-9-0"]
+libvirt-6-0-0 = ["libvirt-5-10-0"]
+libvirt-6-1-0 = ["libvirt-6-0-0"]
+libvirt-6-2-0 = ["libvirt-6-1-0"]
+libvirt-6-3-0 = ["libvirt-6-2-0"]
+libvirt-6-4-0 = ["libvirt-6-3-0"]
+libvirt-6-5-0 = ["libvirt-6-4-0"]
+libvirt-6-6-0 = ["libvirt-6-5-0"]
 
 [dependencies]
 cfg-if = "0.1"
